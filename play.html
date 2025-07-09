@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Run Rabbit complet</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden; background: black;
+  }
+
+  #backgroundTop {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 85vh;
+    background: url('./background-top.png') repeat-x;
+    background-size: cover;
+    z-index: 1;
+  }
+
+  #backgroundBottom {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 15vh;
+    background: url('./background-bottom.png') repeat-x;
+    background-size: cover;
+    z-index: 3;
+  }
+
+  #character {
+    position: absolute;
+    left: 50px;
+    width: 80px;
+    height: 80px;
+    background: url('./rabbit.png') no-repeat center/contain;
+    z-index: 5;
+  }
+
+  .obstacle {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background: url('./obstacle.png') no-repeat center/contain;
+    z-index: 4;
+  }
+
+  .carrot {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: url('./carotte.png') no-repeat center/contain;
+    z-index: 6;
+  }
+
+  #carrotScore {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 24px;
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px 15px;
+    border-radius: 10px;
+    user-select: none;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+  <div id="backgroundTop"></div>
+  <div id="backgroundBottom"></div>
+
+  <div id="character"></div>
+
+  <div id="carrotScore">🥕 x 0</div>
+
+<script>
+  const character = document.getElementById("character");
+  const carrotScoreDisplay = document.getElementById("carrotScore");
+
+  const groundHeightVh = 15;
+  const groundY = window.innerHeight * groundHeightVh / 100;
+
+  let characterBottomPx = groundY;
+  character.style.bottom = characterBottomPx + "px";
+
+  let velocity = 0;
+  const gravity = 1.2;
+  const jumpStrength = 22;
+  let jumpCount = 0;
+  let isJumping = false;
+
+  character.style.left = "50px";
+
+  // Récupérer score sauvegardé au démarrage
+  let carrotScore = parseInt(localStorage.getItem('carrotScore') || '0');
+  carrotScoreDisplay.textContent = `🥕 x ${carrotScore}`;
+
+  function updateCharacter() {
+    velocity -= gravity;
+    characterBottomPx += velocity;
+
+    if(characterBottomPx < groundY) {
+      characterBottomPx = groundY;
+      velocity = 0;
+      jumpCount = 0;
+      isJumping = false;
+    }
+
+    character.style.bottom = characterBottomPx + "px";
+  }
+
+  function jump() {
+    if (jumpCount < 2) {
+      velocity = jumpStrength;
+      isJumping = true;
+      jumpCount++;
+    }
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+      e.preventDefault();
+      jump();
+    }
+  });
+
+  document.addEventListener("click", jump);
+
+  let obstacles = [];
+  let carrots = [];
+  let gameRunning = true;
+  const speed = 6;
+
+  function createObstacle() {
+    const obs = document.createElement("div");
+    obs.classList.add("obstacle");
+    obs.style.left = window.innerWidth + "px";
+    obs.style.bottom = groundHeightVh + "vh";
+    document.body.appendChild(obs);
+    obstacles.push(obs);
+  }
+
+  function createCarrot() {
+    const car = document.createElement("div");
+    car.classList.add("carrot");
+    car.style.left = window.innerWidth + "px";
+    car.style.bottom = groundHeightVh + "vh";
+    document.body.appendChild(car);
+    carrots.push(car);
+  }
+
+  let obstacleTimer = 0;
+  let carrotTimer = 0;
+  const obstacleInterval = 1600;
+  const carrotInterval = 2400;
+
+  function rectsIntersect(r1, r2) {
+    return !(r2.left > r1.right || r2.right < r1.left || r2.top > r1.bottom || r2.bottom < r1.top);
+  }
+
+  function endGame() {
+    gameRunning = false;
+    localStorage.setItem('carrotScore', carrotScore);
+    window.location.href = "index.html";
+  }
+
+  function gameLoop(timestamp = 0) {
+    if (!gameRunning) return;
+
+    if (!this.lastTimestamp) this.lastTimestamp = timestamp;
+    const delta = timestamp - this.lastTimestamp;
+    this.lastTimestamp = timestamp;
+
+    obstacleTimer += delta;
+    carrotTimer += delta;
+
+    if(obstacleTimer > obstacleInterval) {
+      createObstacle();
+      obstacleTimer = 0;
+    }
+
+    if(carrotTimer > carrotInterval) {
+      createCarrot();
+      carrotTimer = 0;
+    }
+
+    updateCharacter();
+
+    for(let i = obstacles.length - 1; i >= 0; i--) {
+      const obs = obstacles[i];
+      let left = parseFloat(obs.style.left);
+      left -= speed;
+      obs.style.left = left + "px";
+
+      if(left < -100) {
+        obs.remove();
+        obstacles.splice(i, 1);
+        continue;
+      }
+
+      const obsRect = obs.getBoundingClientRect();
+      const charRect = character.getBoundingClientRect();
+      if(rectsIntersect(obsRect, charRect)) {
+        endGame();
+        return;
+      }
+    }
+
+    for(let i = carrots.length - 1; i >= 0; i--) {
+      const car = carrots[i];
+      let left = parseFloat(car.style.left);
+      left -= speed;
+      car.style.left = left + "px";
+
+      if(left < -100) {
+        car.remove();
+        carrots.splice(i, 1);
+        continue;
+      }
+
+      const carRect = car.getBoundingClientRect();
+      const charRect = character.getBoundingClientRect();
+      if(rectsIntersect(carRect, charRect)) {
+        carrotScore++;
+        carrotScoreDisplay.textContent = `🥕 x ${carrotScore}`;
+        car.remove();
+        carrots.splice(i, 1);
+      }
+    }
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  gameLoop();
+
+  const backgroundTop = document.getElementById("backgroundTop");
+const backgroundBottom = document.getElementById("backgroundBottom");
+
+let bgPositionX = 0;
+const bgSpeed = 3; // vitesse du défilement à gauche
+
+function animateBackground() {
+  bgPositionX -= bgSpeed; // on fait défiler vers la gauche
+  // Appliquer la position horizontale aux 2 fonds
+  backgroundTop.style.backgroundPosition = `${bgPositionX}px 0`;
+  backgroundBottom.style.backgroundPosition = `${bgPositionX}px 0`;
+
+  requestAnimationFrame(animateBackground);
+}
+
+animateBackground();
+
+</script>
+
+</body>
+</html>

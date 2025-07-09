@@ -1,11 +1,42 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>shop</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #51ee66;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      flex-direction: column;
+    }
+
+    #carrotDisplay {
+      font-size: 32px;
+      margin-top: 10px;
+      margin-bottom: 480px;
+    }
+
+    .shop-title {
+      -webkit-text-stroke-width: 1.5px;
+      -webkit-text-stroke-color: black;
+    }
+
+  </style>
 </head>
 <body>
-    
+  <h1 class="shop-title"><strong>Rabbits Shop 🛍️</strong></h1>
+  <div id="carrotDisplay">Chargement...</div>
+
+  <script>
+    const carrotScore = localStorage.getItem('carrotScore') || 0;
+    document.getElementById('carrotDisplay').textContent = `🥕 x ${carrotScore}`;
+  </script>
 </body>
 </html>
